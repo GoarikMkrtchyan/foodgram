@@ -1,0 +1,44 @@
+volumes:
+  foodgram_data:
+  foodgram_media:
+  foodgram_static:
+
+services:
+
+  frontend:
+    image: goarik/foodgram_frontend:latest
+    volumes:
+      - ../frontend/:/app/result_build/
+    depends_on:
+      - db
+
+
+  nginx:
+    image: goarik/foodgram_nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ../frontend/build:/usr/share/nginx/html/
+      - ../docs/:/usr/share/nginx/html/api/docs/
+      - foodgram_media:/var/html/media/
+      - foodgram_static:/var/html/static/
+    depends_on:
+      - frontend
+      - backend
+
+
+  db:
+    image: postgres:13-alpine
+    env_file: .env
+    volumes:
+      - foodgram_data:/var/lib/postgresql/data
+
+
+  backend:
+    image: goarik/foodgram_backend:latest
+    env_file: .env
+    volumes:
+      - foodgram_static:/app/static/
+      - foodgram_media:/app/media/
+    depends_on:
+      - db
