@@ -96,6 +96,10 @@ class Recipe(models.Model):
         verbose_name='Короткая ссылка рецепта',
     )
 
+    created = models.DateTimeField(
+        auto_now_add=True,
+    )
+
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
