@@ -131,7 +131,7 @@ class IngredientViewset(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     queryset = (
-        Recipe.objects.order_by('-created_at')  # сортировка по дате создания
+        Recipe.objects.order_by('-created')  # сортировка по дате создания
         .select_related('author')
         .prefetch_related('tags', 'ingredients')
         .all()
