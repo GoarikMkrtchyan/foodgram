@@ -4,7 +4,7 @@ from django.db import models
 
 from users.constants import (LIMIT_EMAIL, LIMIT_NAME, LIMIT_PASSWORD,
                              LIMIT_USERNAME)
-from users.validators import username_valdation
+from users.validators import username_validation
 
 
 class User(AbstractUser):
@@ -20,7 +20,7 @@ class User(AbstractUser):
         unique=True,
         verbose_name='Логин',
         validators=[
-            username_valdation
+            username_validation
         ]
     )
     first_name = models.CharField(

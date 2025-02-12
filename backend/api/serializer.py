@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from api.constants import MIN_AMOUNT
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
-from users.models import Follow
+from users.models import Follow, User
 
 User = get_user_model()
 
@@ -23,16 +23,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
         read_only_fields = ('id',)
 
+    def validate_username(self, value):
+        if value.lower() == 'me':
+            raise serializers.ValidationError(
+                "Недопустимое имя пользователя: 'me'.")
+        return value
+
     def create(self, validated_data):
-        user = User(
-            email=self.validated_data['email'],
-            username=self.validated_data['username'],
-            first_name=self.validated_data['first_name'],
-            last_name=self.validated_data['last_name']
-        )
-        user.set_password(self.validated_data['password'])
-        user.save()
-        return user
+        return User.objects.create_user(**validated_data)
 
 
 class UserSerializer(serializers.ModelSerializer):
