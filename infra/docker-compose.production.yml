@@ -38,7 +38,7 @@ services:
     image: goarik/foodgram_backend:latest
     env_file: .env
     volumes:
-      - foodgram_static:/app/static/
-      - foodgram_media:/app/media/
+      - /var/www/foodgram/static/:/var/www/foodgram/static/
+      - /var/www/foodgram/media/:/var/www/foodgram/media/
     depends_on:
       - db
