@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from api.constants import MIN_AMOUNT
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
-from users.models import Follow, User
+from users.models import Follow
 
 User = get_user_model()
 
