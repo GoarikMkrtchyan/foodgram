@@ -16,7 +16,8 @@ services:
   nginx:
     image: nginx:1.22.1
     ports:
-      - "8000:80"
+      - "443:443"
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/templates/default.conf.template
       - ../frontend/build:/usr/share/nginx/html/
