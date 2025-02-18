@@ -168,6 +168,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             user=user
         ).exists()
 
+    def validate_ingredients(self, value):
+        if not value:
+            raise serializers.ValidationError("Добавьте один ингредиент.")
+        for ingredient in value:
+            if ingredient["amount"] <= 0:
+                raise serializers.ValidationError(
+                    f"Количество ингредиента {ingredient['name']} больше 0."
+                )
+        return value
+
 
 class EasyRecipeSerializer(serializers.ModelSerializer):
 
