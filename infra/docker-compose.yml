@@ -39,7 +39,6 @@ services:
     image: goarik/foodgram_backend:latest
     env_file: ../.env
     volumes:
-    volumes:
       - foodgram_static:/app/static/
       - foodgram_media:/app/media/
     depends_on:
