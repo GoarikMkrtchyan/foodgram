@@ -16,12 +16,13 @@ services:
   nginx:
     image: goarik/foodgram_nginx:latest
     ports:
-      - "8000:80"
+      - "9000:80"
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-      - foodgram_media:/var/html/media/
-      - foodgram_static:/var/html/static/
+      - foodgram_media:/app/media/
+      - foodgram_static:/app/static/
+
     depends_on:
       - frontend
       - backend
@@ -37,7 +38,6 @@ services:
   backend:
     image: goarik/foodgram_backend:latest
     env_file: .env
-    volumes:
     volumes:
       - foodgram_static:/app/static/
       - foodgram_media:/app/media/
