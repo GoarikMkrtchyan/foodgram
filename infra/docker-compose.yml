@@ -40,7 +40,6 @@ services:
     env_file: ../.env
     volumes:
     volumes:
-      - ./backend/:/app/
       - foodgram_static:/app/static/
       - foodgram_media:/app/media/
     depends_on:
