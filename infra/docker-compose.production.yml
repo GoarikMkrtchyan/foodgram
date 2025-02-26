@@ -20,8 +20,8 @@ services:
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-      - foodgram_media:/app/media/
-      - foodgram_static:/app/static/
+      - foodgram_media:/var/html/media/
+      - foodgram_static:/var/html/static/
 
     depends_on:
       - frontend
