@@ -16,7 +16,7 @@ services:
   nginx:
     image: goarik/foodgram_nginx:latest
     ports:
-      - "9000:80"
+      - "8000:80"
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
