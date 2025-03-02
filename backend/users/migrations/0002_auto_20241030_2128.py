@@ -34,6 +34,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='user',
             name='username',
-            field=models.CharField(max_length=150, unique=True, validators=[users.validators.username_valdation], verbose_name='Логин'),
+            field=models.CharField(max_length=150, unique=True, validators=[users.validators.username_validation], verbose_name='Логин'),
         ),
     ]
