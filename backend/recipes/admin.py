@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 from django.forms.models import BaseInlineFormSet
 
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
@@ -71,12 +72,24 @@ class RecipeAdmin(admin.ModelAdmin):
             ]
         )
 
-    def save_model(self, request, obj, form, change):
-        if not obj.ingredients.exists():
-            raise ValidationError("Рецепт должен содержать один ингредиент.")
-        if any(ingredient.amount <= 0 for ingredient in obj.ingredients.all()):
-            raise ValidationError("Количество ингредиента больше 0.")
-        super().save_model(request, obj, form, change)
+
+def save_model(self, request, obj, form, change):
+    try:
+        if not obj.recipeingredient_set.exists():
+            raise ValidationError(
+                "Рецепт должен содержать хотя бы один ингредиент."
+            )
+        if any(
+            ingredient.amount <= 0
+            for ingredient in obj.recipeingredient_set.all()
+        ):
+            raise ValidationError(
+                "Количество ингредиента должно быть больше 0."
+            )
+    except IntegrityError:
+        raise ValidationError("Ошибка сохранения ингредиентов.")
+
+    super().save_model(request, obj, form, change)
 
 
 class IngredientAdmin(admin.ModelAdmin):
