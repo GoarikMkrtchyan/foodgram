@@ -38,13 +38,14 @@ class RecipeTagInLine(admin.TabularInline):
 class RecipeForm(ModelForm):
     def clean(self):
         cleaned_data = super().clean()
-        ingredients = self.instance.ingredients.all()
+        ingredients = self.cleaned_data.get('ingredients', [])
 
-        if not ingredients.exists():
+        if not ingredients:
             raise ValidationError("Рецепт должен содержать 1 ингредиент.")
 
-        if any(ingredient.amount <= 0 for ingredient in ingredients):
-            raise ValidationError("Количество ингредиента должно быть > 0")
+        for ingredient in ingredients:
+            if ingredient.amount <= 0:
+                raise ValidationError("Количество ингредиента должно быть > 0")
 
         return cleaned_data
 
@@ -94,19 +95,7 @@ class RecipeAdmin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
-        try:
-            if not obj.ingredients.exists():
-                raise ValidationError("Рецепт должен содержать 1 ингредиент.")
-            if any(
-                ingredient.amount <= 0
-                for ingredient in obj.recipeingredient_set.all()
-            ):
-                raise ValidationError("Количество ингредиента должно быть > 0")
-
-            super().save_model(request, obj, form, change)
-        except ValidationError as e:
-            form.add_error(None, e)
-            return
+        super().save_model(request, obj, form, change)
 
 
 class IngredientAdmin(admin.ModelAdmin):
