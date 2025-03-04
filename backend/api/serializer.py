@@ -253,7 +253,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 recipe=recipe
             ) for ingredient in ingredients]
         )
-        recipe.tags.set(tags, clear=True)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')

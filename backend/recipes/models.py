@@ -116,8 +116,13 @@ class Recipe(models.Model):
         return self.name
 
     def clean(self):
-        if self.pk and not self.ingredients.exists():
-            raise ValidationError("Рецепт должен содержать 1 ингредиент.")
+        if not self.ingredients.exists():
+            raise ValidationError("Рецепт должен содержать один ингредиент.")
+        if any(
+            ingredient.amount <= 0
+            for ingredient in self.ingredients.all()
+        ):
+            raise ValidationError("Количество ингредиента должно быть > 0.")
 
 
 class RecipeTag(models.Model):
