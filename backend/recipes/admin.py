@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
+from django.forms import ModelForm
 
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             RecipeTag, ShoppingCart, Tag)
@@ -9,12 +10,18 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
 class IngredientFormSet(BaseInlineFormSet):
     def clean(self):
         super().clean()
-        if not any(
-            form.cleaned_data
-            for form in self.forms
-            if not form.cleaned_data.get('DELETE', False)
-        ):
-            raise ValidationError("Рецепт должен содержать один ингредиент.")
+        valid_forms = [
+            form for form in self.forms
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+        ]
+
+        if not valid_forms:
+            raise ValidationError("Рецепт должен содержать 1 ингредиент")
+
+        for form in valid_forms:
+            amount = form.cleaned_data.get('amount')
+            if amount is not None and amount <= 0:
+                raise ValidationError("Количество ингредиента должно быть > 0")
 
 
 class RecipeIngredientInLine(admin.TabularInline):
@@ -28,7 +35,22 @@ class RecipeTagInLine(admin.TabularInline):
     extra = 1
 
 
+class RecipeForm(ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        ingredients = self.instance.ingredients.all()
+
+        if not ingredients.exists():
+            raise ValidationError("Рецепт должен содержать 1 ингредиент.")
+
+        if any(ingredient.amount <= 0 for ingredient in ingredients):
+            raise ValidationError("Количество ингредиента должно быть > 0")
+
+        return cleaned_data
+
+
 class RecipeAdmin(admin.ModelAdmin):
+    form = RecipeForm
     inlines = (RecipeIngredientInLine, RecipeTagInLine,)
     list_display = (
         'name', 'author', 'favorite_count',
@@ -72,11 +94,19 @@ class RecipeAdmin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
-        if not obj.ingredients.exists():
-            raise ValidationError("Рецепт должен содержать один ингредиент.")
-        if any(ingredient.amount <= 0 for ingredient in obj.ingredients.all()):
-            raise ValidationError("Количество ингредиента больше 0.")
-        super().save_model(request, obj, form, change)
+        try:
+            if not obj.ingredients.exists():
+                raise ValidationError("Рецепт должен содержать 1 ингредиент.")
+            if any(
+                ingredient.amount <= 0
+                for ingredient in obj.recipeingredient_set.all()
+            ):
+                raise ValidationError("Количество ингредиента должно быть > 0")
+
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            form.add_error(None, e)
+            return
 
 
 class IngredientAdmin(admin.ModelAdmin):
