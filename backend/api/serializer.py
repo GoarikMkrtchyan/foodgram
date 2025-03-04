@@ -248,11 +248,12 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     def set_tags_ingredients(self, recipe, tags, ingredients):
         RecipeIngredient.objects.bulk_create(
             [RecipeIngredient(
-                ingredient=Ingredient.objects.get(id=ingredient['id'].id),
-                amount=ingredient['amount'],
+                ingredient=ingredient.get('id'),
+                amount=ingredient.get('amount'),
                 recipe=recipe
             ) for ingredient in ingredients]
         )
+        recipe.tags.set(tags, clear=True)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
