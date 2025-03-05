@@ -1,138 +1,49 @@
-from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.forms import ModelForm
-from django.forms.models import BaseInlineFormSet
+from django.contrib import admin
+from django.contrib.admin import ModelAdmin, TabularInline, register
 
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            RecipeTag, ShoppingCart, Tag)
+from .models import Ingredient, Recipe, RecipeIngredient, Tag
 
 
-class IngredientFormSet(BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        valid_forms = [
-            form for form in self.forms
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False)
-        ]
-
-        if not valid_forms:
-            for form in self.forms:
-                form.add_error(
-                    None, "Рецепт должен содержать хотя бы 1 ингредиент.")
-
-        for form in valid_forms:
-            amount = form.cleaned_data.get('amount')
-            if amount is not None and amount <= 0:
-                form.add_error(
-                    'amount', "Количество ингредиента должно быть больше 0.")
-
-
-class RecipeIngredientInLine(admin.TabularInline):
+class RecipeIngredientInline(TabularInline):
     model = RecipeIngredient
     extra = 1
-    formset = IngredientFormSet
 
 
-class RecipeTagInLine(admin.TabularInline):
-    model = RecipeTag
-    extra = 1
+@register(Tag)
+class TagAdmin(ModelAdmin):
+    list_display = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
 
 
-class RecipeForm(ModelForm):
-    def clean(self):
-        cleaned_data = super().clean()
-        ingredients = cleaned_data.get('ingredients', [])
-
-        if not ingredients:
-            self.add_error(
-                'ingredients', "Рецепт должен содержать 1 ингредиент")
-
-        for ingredient in ingredients:
-            if ingredient.amount <= 0:
-                self.add_error(
-                    'ingredients', "Количество ингредиента должно быть > 0")
-
-        return cleaned_data
-
-
-class RecipeAdmin(admin.ModelAdmin):
-    form = RecipeForm
-    inlines = (RecipeIngredientInLine, RecipeTagInLine,)
-    list_display = (
-        'name', 'author', 'favorite_count',
-        'ingredients_in_recipe', 'tags_in_recipe',
-    )
-    search_fields = ('name', 'author',)
-    list_filter = ('author', 'name', 'tags__name',)
-
-    @admin.display(description='Добавили в избранное')
-    def favorite_count(self, obj):
-        return obj.favorite.count()
-
-    @admin.display(description='Теги рецепта')
-    def tags_in_recipe(self, obj):
-        tags = obj.recipe_tag.values('tag__name').order_by('tag__name')
-        return ', '.join([tag['tag__name'] for tag in tags])
-
-    @admin.display(description='Ингредиенты рецепта')
-    def ingredients_in_recipe(self, obj):
-        ingredients = (
-            RecipeIngredient.objects.filter(recipe=obj)
-            .values(
-                'ingredient__name',
-                'amount',
-                'ingredient__measurement_unit',
-            )
-            .order_by(
-                'ingredient__name',
-                'ingredient__measurement_unit',
-            )
-        )
-        return ', '.join(
-            [
-                (
-                    f"{ingredient['ingredient__name']} - "
-                    f"{ingredient['amount']} "
-                    f"{ingredient['ingredient__measurement_unit']}"
-                )
-                for ingredient in ingredients
-            ]
-        )
-
-    def save_model(self, request, obj, form, change):
-        try:
-            with transaction.atomic():
-                super().save_model(request, obj, form, change)
-        except ValidationError as e:
-            self.message_user(
-                request, f"Ошибка: {e.messages[0]}", level=messages.ERROR)
-
-
-class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit',)
-    list_filter = ('name',)
+@register(Ingredient)
+class IngredientAdmin(ModelAdmin):
+    list_display = ('name', 'measurement_unit')
     search_fields = ('name',)
 
 
-class RecipeIngredientAdmin(admin.ModelAdmin):
-    list_display = ('recipe', 'ingredient', 'amount',)
+@register(Recipe)
+class RecipeAdmin(ModelAdmin):
+    list_display = (
+        'author',
+        'name',
+        'cooking_time',
+        'get_ingredients',
+        'get_tags',
+    )
+    list_filter = ('author', 'tags', 'cooking_time')
+    search_fields = ('name', 'author__username', 'ingredients__name')
+    inlines = (RecipeIngredientInline,)
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.prefetch_related('ingredients', 'tags', 'author')
+        return queryset
 
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug',)
-    list_filter = ('name',)
-    search_fields = ('name', 'slug',)
+    @admin.display(description="Ингредиенты")
+    def get_ingredients(self, obj):
+        return ", ".join(
+            ingredient.name for ingredient in obj.ingredients.all())
 
-
-class RecipeTagAdmin(admin.ModelAdmin):
-    list_display = ("recipe", "tag",)
-
-
-admin.site.register(Tag, TagAdmin)
-admin.site.register(Recipe, RecipeAdmin)
-admin.site.register(RecipeTag, RecipeTagAdmin)
-admin.site.register(RecipeIngredient, RecipeIngredientAdmin)
-admin.site.register(Favorite)
-admin.site.register(ShoppingCart)
-admin.site.register(Ingredient, IngredientAdmin)
+    @admin.display(description="Теги")
+    def get_tags(self, obj):
+        return ", ".join(tag.name for tag in obj.tags.all())
