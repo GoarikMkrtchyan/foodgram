@@ -1,3 +1,6 @@
+import random
+import string
+
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -96,6 +99,12 @@ class Recipe(models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+
+    def generate_short_link(self):
+        while (short_link := ''.join(random.choices(
+            string.ascii_letters + string.digits, k=LIMIT_SHORT_LINK))
+        ) is not Recipe.objects.filter(short_link=short_link).exists():
+            return short_link
 
     def save(self, *args, **kwargs):
         if not self.short_link:
