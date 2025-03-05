@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
@@ -38,14 +38,16 @@ class RecipeTagInLine(admin.TabularInline):
 class RecipeForm(ModelForm):
     def clean(self):
         cleaned_data = super().clean()
-        ingredients = self.cleaned_data.get('ingredients', [])
+        ingredients = cleaned_data.get('ingredients', [])
 
         if not ingredients:
-            raise ValidationError("Рецепт должен содержать 1 ингредиент.")
+            self.add_error(
+                'ingredients', "Рецепт должен содержать 1 ингредиент")
 
         for ingredient in ingredients:
             if ingredient.amount <= 0:
-                raise ValidationError("Количество ингредиента должно быть > 0")
+                self.add_error(
+                    'ingredients', "Количество ингредиента должно быть > 0")
 
         return cleaned_data
 
@@ -95,7 +97,10 @@ class RecipeAdmin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
+        try:
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            self.message_user(request, f"Ошибка: {e}", level=messages.ERROR)
 
 
 class IngredientAdmin(admin.ModelAdmin):
