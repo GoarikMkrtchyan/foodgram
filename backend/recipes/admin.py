@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
 
@@ -16,12 +17,15 @@ class IngredientFormSet(BaseInlineFormSet):
         ]
 
         if not valid_forms:
-            raise ValidationError("Рецепт должен содержать 1 ингредиент")
+            for form in self.forms:
+                form.add_error(
+                    None, "Рецепт должен содержать хотя бы 1 ингредиент.")
 
         for form in valid_forms:
             amount = form.cleaned_data.get('amount')
             if amount is not None and amount <= 0:
-                raise ValidationError("Количество ингредиента должно быть > 0")
+                form.add_error(
+                    'amount', "Количество ингредиента должно быть больше 0.")
 
 
 class RecipeIngredientInLine(admin.TabularInline):
@@ -98,9 +102,11 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         try:
-            super().save_model(request, obj, form, change)
+            with transaction.atomic():
+                super().save_model(request, obj, form, change)
         except ValidationError as e:
-            self.message_user(request, f"Ошибка: {e}", level=messages.ERROR)
+            self.message_user(
+                request, f"Ошибка: {e.messages[0]}", level=messages.ERROR)
 
 
 class IngredientAdmin(admin.ModelAdmin):
