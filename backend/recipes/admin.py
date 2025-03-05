@@ -16,12 +16,14 @@ class IngredientFormSet(BaseInlineFormSet):
         ]
 
         if not valid_forms:
-            raise ValidationError("Рецепт должен содержать хотя бы 1 ингредиент.")
+            raise ValidationError(
+                "Рецепт должен содержать хотя бы 1 ингредиент.")
 
         for form in valid_forms:
             amount = form.cleaned_data.get('amount')
             if amount is not None and amount <= 0:
-                form.add_error('amount', "Количество ингредиента должно быть больше 0.")
+                form.add_error(
+                    'amount', "Количество ингредиента должно быть больше 0.")
 
 
 class RecipeIngredientInLine(admin.TabularInline):
@@ -73,7 +75,8 @@ class RecipeAdmin(admin.ModelAdmin):
         if not obj.pk:
             return "Нет тегов (объект не сохранён)"
         tags = obj.recipe_tag.values('tag__name').order_by('tag__name')
-        return ', '.join([tag['tag__name'] for tag in tags]) if tags else "Нет тегов"
+        return ', '.join(
+            [tag['tag__name'] for tag in tags]) if tags else "Нет тегов"
 
     @admin.display(description='Ингредиенты рецепта')
     def ingredients_in_recipe(self, obj):
