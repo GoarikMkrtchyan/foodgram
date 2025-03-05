@@ -16,14 +16,12 @@ class IngredientFormSet(BaseInlineFormSet):
         ]
 
         if not valid_forms:
-            raise ValidationError(
-                "Рецепт должен содержать хотя бы 1 ингредиент.")
+            raise ValidationError("Рецепт должен содержать хотя бы 1 ингредиент.")
 
         for form in valid_forms:
             amount = form.cleaned_data.get('amount')
             if amount is not None and amount <= 0:
-                form.add_error(
-                    'amount', "Количество ингредиента должно быть больше 0.")
+                form.add_error('amount', "Количество ингредиента должно быть больше 0.")
 
 
 class RecipeIngredientInLine(admin.TabularInline):
@@ -42,23 +40,12 @@ class RecipeForm(forms.ModelForm):
         model = Recipe
         fields = "__all__"
 
-    def clean(self):
-        cleaned_data = super().clean()
-        name = cleaned_data.get("name")
-        ingredients = self.cleaned_data.get("recipeingredient_set")
-        tags = self.cleaned_data.get("recipetag_set")
-
-        if not name:
-            self.add_error("name", "Название рецепта обязательно.")
-
-        if not ingredients or not any(ingredients):
-            raise ValidationError(
-                "Рецепт должен содержать хотя бы 1 ингредиент.")
-
-        if not tags or not any(tags):
-            raise ValidationError("Рецепт должен содержать хотя бы 1 тег.")
-
-        return cleaned_data
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()  # Сохраняем объект, чтобы получить id
+            self.save_m2m()  # Сохраняем ManyToMany связи
+        return instance
 
 
 class RecipeAdmin(admin.ModelAdmin):
@@ -71,18 +58,27 @@ class RecipeAdmin(admin.ModelAdmin):
     search_fields = ('name', 'author',)
     list_filter = ('author', 'name', 'tags__name',)
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+
     @admin.display(description='Добавили в избранное')
     def favorite_count(self, obj):
         return obj.favorite.count() if obj.favorite else 0
 
     @admin.display(description='Теги рецепта')
     def tags_in_recipe(self, obj):
+        if not obj.pk:
+            return "Нет тегов (объект не сохранён)"
         tags = obj.recipe_tag.values('tag__name').order_by('tag__name')
-        return ', '.join(
-            [tag['tag__name'] for tag in tags]) if tags else "Нет тегов"
+        return ', '.join([tag['tag__name'] for tag in tags]) if tags else "Нет тегов"
 
     @admin.display(description='Ингредиенты рецепта')
     def ingredients_in_recipe(self, obj):
+        if not obj.pk:
+            return "Нет ингредиентов (объект не сохранён)"
         ingredients = (
             RecipeIngredient.objects.filter(recipe=obj)
             .values(

@@ -101,28 +101,17 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
-    def generate_short_link(self):
-        while (short_link := ''.join(random.choices(
-            string.ascii_letters + string.digits, k=LIMIT_SHORT_LINK))
-        ) is not Recipe.objects.filter(short_link=short_link).exists():
-            return short_link
-
     def save(self, *args, **kwargs):
         if not self.short_link:
             self.short_link = self.generate_short_link()
         super().save(*args, **kwargs)
+        if hasattr(self, 'tags'):
+            self.tags.set(self.tags.all())
+        if hasattr(self, 'ingredients'):
+            self.ingredients.set(self.ingredients.all())
 
     def __str__(self):
         return self.name
-
-    def clean(self):
-        if not self.ingredients.exists():
-            raise ValidationError("Рецепт должен содержать один ингредиент.")
-        if any(
-            ingredient.amount <= 0
-            for ingredient in self.ingredients.all()
-        ):
-            raise ValidationError("Количество ингредиента должно быть > 0.")
 
 
 class RecipeTag(models.Model):
