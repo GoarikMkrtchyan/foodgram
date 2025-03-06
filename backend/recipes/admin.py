@@ -26,6 +26,18 @@ class IngredientFormSet(BaseInlineFormSet):
                     'amount', "Количество ингредиента должно быть больше 0.")
 
 
+class TagFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        valid_forms = [
+            form for form in self.forms
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+        ]
+
+        if not valid_forms:
+            raise ValidationError("Рецепт должен содержать хотя бы 1 тег.")
+
+
 class RecipeIngredientInLine(admin.TabularInline):
     model = RecipeIngredient
     extra = 1
@@ -35,6 +47,7 @@ class RecipeIngredientInLine(admin.TabularInline):
 class RecipeTagInLine(admin.TabularInline):
     model = RecipeTag
     extra = 1
+    formset = TagFormSet
 
 
 class RecipeForm(forms.ModelForm):
@@ -45,8 +58,8 @@ class RecipeForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
         if commit:
-            instance.save()  # Сохраняем объект, чтобы получить id
-            self.save_m2m()  # Сохраняем ManyToMany связи
+            instance.save()
+            self.save_m2m()
         return instance
 
 
